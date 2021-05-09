@@ -2,16 +2,30 @@
 // Created by Kologermansky on 12.03.2021.
 //
 // Include standard headers
-#include <stdio.h>
 #include <iostream>
-#include <stdlib.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
 #include <common/shader.hpp>
+
+// points
+#define A -0.5f, -0.2f, 0.9f
+#define B -0.2f, 0.5f, 0.9f
+#define C 0.7f, 0.1f, 0.9f
+#define D -0.5f, -0.2f, -0.9f
+#define E -0.2f, 0.5f, -0.9f
+#define F 0.7f, 0.1f, -0.9f
+// colors
+#define A_c 0.2f, 0.3f, 0.7f, 0.5f
+#define B_c 0.3f, 0.5f, 0.1f, 0.9f
+#define C_c 0.7f, 0.1f, 0.0f, 0.2f
+#define D_c 0.1f, 0.8f, 0.3f, 0.1f
+#define E_c 0.6f, 0.1f, 0.3f, 0.4f
+#define F_c 0.7f, 0.1f, 0.9f, 0.1f
 
 int main() {
     if(!glfwInit()) {
@@ -22,10 +36,9 @@ int main() {
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow( 1024, 768, "Task 2", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow( 1024, 768, "Task 4", NULL, NULL);
     if(nullptr == window) {
         std::cerr << "Failed to open GLFW window" << std::endl;
         glfwTerminate();
@@ -54,13 +67,19 @@ int main() {
     // generate vertex buffer
     GLuint vertexbuffer;
     static const GLfloat g_vertex_buffer_data[] = {
-            -0.5f, 0.9f, 0.0f,
-            0.3f, -0.3f, 0.0f,
-            -0.9f,  -0.5f, 0.0f,
-
-            -0.2f, -0.2f, 0.0f,
-            0.9f, -0.1f, 0.0f,
-            -0.9f, 0.5f, 0.0f
+            // high triangle
+            A, B, C,
+            // back
+            A, B, D,
+            D, B, E,
+            // left
+            A, C, D,
+            D, C, F,
+            // right
+            C, B, F,
+            B, F, E,
+            // low triangle
+            D, E, F
     };
     glGenBuffers(1, &vertexbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -70,27 +89,59 @@ int main() {
     // generate color buffer
     GLuint colorbuffer;
     static const GLfloat g_color_buffer_data[] = {
-            0.1f, 0.2f, 0.9f, 0.1f,
-            0.9f, 0.1f, 0.2f, 0.5f,
-            0.2f, 0.9f, 0.1f, 0.9f,
-
-            0.3f, 0.4f, 0.5f, 0.0f,
-            0.4f, 0.5f, 0.3f, 0.5f,
-            0.5f, 0.3f, 0.4f, 1.0f,
+            // high
+            A_c, B_c, C_c,
+            // back
+            A_c, B_c, D_c,
+            D_c, B_c, E_c,
+            // left
+            A_c, C_c, D_c,
+            D_c, C_c, F_c,
+            // right
+            C_c, B_c, F_c,
+            B_c, F_c, E_c,
+            // low
+            D_c, E_c, F_c,
     };
     glGenBuffers(1, &colorbuffer);
     glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_color_buffer_data), g_color_buffer_data, GL_STATIC_DRAW);
 
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+
+    // Get a handle for our "MVP" uniform
+    GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+
+
+    GLfloat alpha = 0.0f;
+    const GLfloat step = 0.0005f;
+    const auto PI = glm::pi<GLfloat>();
+    const glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
 
     do {
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Use our shader
         glUseProgram(programID);
+
+        // step
+        if ((alpha += step) > 2 * PI) {
+            alpha -= 2 * PI;
+        }
+        // Camera matrix
+        glm::mat4 View = glm::lookAt(
+                glm::vec3(3 * glm::sin(alpha),0,3 * glm::cos(alpha)),
+                glm::vec3(0,0,0),
+                glm::vec3(0,1,0)
+        );
+
+        glm::mat4 MVP = Projection * View;// * Model;
+
+        // Send our transformation to the currently bound shader,
+        // in the "MVP" uniform
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
         // Enable attribute arrays
         glEnableVertexAttribArray(0);
@@ -119,7 +170,7 @@ int main() {
         );
 
         // Draw the triangle !
-        glDrawArrays(GL_TRIANGLES, 0, 3 * 2);
+        glDrawArrays(GL_TRIANGLES, 0, 3 * 8);
 
         // Disable attribute arrays
         glDisableVertexAttribArray(0);

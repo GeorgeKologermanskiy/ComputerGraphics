@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.0)
-project (HomeWork1)
+project (HomeWork)
 
 find_package(OpenGL REQUIRED)
 
@@ -37,38 +37,14 @@ add_definitions(
 )
 
 # task 2
-add_executable(task2
-        task2/main.cpp
-        )
-target_link_libraries(task2 ${ALL_LIBS})
-# Xcode and Visual working directories
-set_target_properties(task2 PROPERTIES XCODE_ATTRIBUTE_CONFIGURATION_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/task2/")
-create_target_launcher(task2 WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/task2/")
+add_subdirectory(task2)
 
+# task 3
+add_subdirectory(task3)
 
-# User playground
-add_executable(playground
-        playground/playground.cpp
-        common/shader.cpp
-        common/shader.hpp
-        )
-target_link_libraries(playground
-        ${ALL_LIBS}
-        )
-# Xcode and Visual working directories
-set_target_properties(playground PROPERTIES XCODE_ATTRIBUTE_CONFIGURATION_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/playground/")
-create_target_launcher(playground WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/playground/")
+# task 4
+add_subdirectory(task4)
 
-
-
-SOURCE_GROUP(common REGULAR_EXPRESSION ".*/common/.*" )
-SOURCE_GROUP(shaders REGULAR_EXPRESSION ".*/.*shader$" )
-
-
-add_custom_command(
-        TARGET task2 POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/task2${CMAKE_EXECUTABLE_SUFFIX}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/task2/"
-)
+# HomeWork 2
+add_subdirectory(HomeWork2)
 

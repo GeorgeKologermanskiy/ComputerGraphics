@@ -2,13 +2,12 @@
 // Created by Kologermansky on 12.03.2021.
 //
 // Include standard headers
-#include <stdio.h>
 #include <iostream>
-#include <stdlib.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
 #include <common/shader.hpp>
@@ -22,10 +21,9 @@ int main() {
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow( 1024, 768, "Task 2", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow( 1024, 768, "Task 3", NULL, NULL);
     if(nullptr == window) {
         std::cerr << "Failed to open GLFW window" << std::endl;
         glfwTerminate();
@@ -86,11 +84,37 @@ int main() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // Get a handle for our "MVP" uniform
+    GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+
+
+    GLfloat alpha = 0.0f;
+    const GLfloat step = 0.001f;
+    const auto PI = glm::pi<GLfloat>();
+    const glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+
     do {
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Use our shader
         glUseProgram(programID);
+
+        // step
+        if ((alpha += step) > 2 * PI) {
+            alpha -= 2 * PI;
+        }
+        // Camera matrix
+        glm::mat4 View = glm::lookAt(
+                glm::vec3(3 * glm::sin(alpha),0,3 * glm::cos(alpha)),
+                glm::vec3(0,0,0),
+                glm::vec3(0,1,0)
+        );
+
+        glm::mat4 MVP = Projection * View;// * Model;
+
+        // Send our transformation to the currently bound shader,
+        // in the "MVP" uniform
+        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
         // Enable attribute arrays
         glEnableVertexAttribArray(0);
@@ -141,3 +165,4 @@ int main() {
     glfwTerminate();
     return 0;
 }
+
